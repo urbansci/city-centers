@@ -42,6 +42,7 @@ class Contour:
             seed contours.
         Childs (list): The list of ID of the childs of the contour, only direct-connected childs.
         Parent (int): The ID of the contour's parent. -1 for root contour.
+
     """
     def __init__(self, ID, Value, geometry, Area=0):
         self.ID = ID
@@ -75,7 +76,8 @@ class Center:
         Longitude (float): The longitude of the center location.
         ClusterID (int): The ID of the urban area possessing the center.
         IsMainCenter (int): Whether the center is the main center of the urban area, 0 for false, 1 for true.
-      """
+
+    """
     def __init__(self, ID, geometry, Latitude, Longitude, ClusterID):
         self.ID = ID
         self.geometry = geometry
@@ -100,6 +102,14 @@ class CentersGenerator():
         clusters (list[Cluster]): A list of the input urban areas.
         seedContours (list[Contour]): A list of the identified seed contours.
         centers (list[Center]): A list of the identified centers.
+
+    Methods:
+        GetCentroid(self, geometry, NTL): Extract the centroid weighted by the NTL of the contour.
+        DetectCenter(self, contourPath, NTL, NTLArray, PopArray, PopTransform): Detect the centers within the urban area and identify the main center.
+        IdentifyBasecontour(self, alterBasecontours, PopArray, PopTransform): Identify the base contour from alter basecontours.
+        IdentifyMainCenter(self, centers, contours, PopArray, PopTransform): Identify the main center among centers.
+        AssignGeoname(self, geonamePath): Assign geonames to urban areas and its centers.
+        Execute(self, Clusters, contourPath, geonamePath, NTL, NTLArray, PopArray, PopTransform): Generate the centers within the urban areas.
     """
 
     def __init__(self):

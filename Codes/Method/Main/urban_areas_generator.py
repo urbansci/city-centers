@@ -64,6 +64,12 @@ class UrbanAreasGenerator:
 
     Attributes:
         clusters (list[Cluster]): The list of the identified urban areas.
+
+    Methods:
+        Binarize(self, NTLArray, optThres): Binarize the raw data to the urban/non-urban cells under the optimal threshold.
+        Aggregate(self, binaryArray, transform): Merge urban cells into urban clusters.
+        CalAttributes(self, NTLArray, NTLTransform, PopArray, PopTransform): Obtain the attributes of urban areas, including area, total brightness value and total population.
+        Execute(self, optThres, NTLArray, NTLTransform, PopArray, PopTransform): Generate the urban areas under the optimal threshold by the 'Percolation-based city cluster algorithm'.
     """
 
     def __init__(self):
