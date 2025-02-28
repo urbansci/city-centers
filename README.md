@@ -28,6 +28,12 @@ Urban centers serve as engines of regional development, yet accurately defining 
     * `population_decay.py`: Extended Data Figure 5: *Population density decay curve from urban center to periphery*.
     * `brightest_centroid.py`: Extended Data Figure 6: *Comparison of the identified centers with the brightest grids and centroids*.
 
+### Instruction 
+For the purpose of replication, users are recommended to flow this workflow: 
+- Run `pcca.py` to generate the percolation graph and determine the optimal threshold for the country.
+- Run `contours_generation.py` to generate the contours map of the country.
+- Run `execute.py` to generate the cities and centers of the country.
+
 ## Dataset
 The urban centers are saved in CSV format, with each row representing one center, encoded in UTF-8. The meanings of the fields are given below.
 - iso: The ISO alpha-3 code of the country that the center belonged to.
