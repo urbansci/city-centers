@@ -1,4 +1,4 @@
-# Socioeconomic centers in cities worldwide
+# Mapping urban economic centers worldwide
 Shuai Pang, Junlong Zhang and Lei Dong
 
 ## Abstract
