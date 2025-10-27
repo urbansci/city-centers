@@ -3,7 +3,7 @@ Shuai Pang, Junlong Zhang and Lei Dong
 
 ## Abstract
 
-Urban centers serve as engines of regional development, yet accurately defining and identifying the socioeconomic centers of cities globally remains a big challenge. Existing mapping efforts are often limited to large cities in developed regions and rely on data sources that are unavailable in many developing countries. This data scarcity hinders the establishment of consistent urban indicators, such as accessibility, to assess progress towards the United Nations Sustainable Development Goals (SDGs). Here, we develop and validate a global map of the socioeconomic centers of cities for 2020 by integrating nighttime light and population density data within an advanced geospatial modeling framework. Our analysis reveals that monocentric cities -- the standard urban model -- still dominate our planet, accounting for over 80% of cities worldwide. However, these monocentric cities encompass only approximately 20% of the total urbanized area, urban population, and nighttime light intensity; this 80/20 pattern underscores significant disparities in urban development. Further analysis, combined with socioeconomic datasets, reveals a marked difference between developed and developing regions: high-income countries exhibit greater polycentricity than low-income countries, demonstrating a positive correlation between urban sprawl and economic growth. Our global dataset and findings provide critical insights into urban structure and development, with important implications for urban planning, policymaking, and the formulation of indicators for urban sustainability assessment.
+Urban centers are key engines of regional development, yet accurately defining and identifying their economic cores at the global scale remains a major challenge. Existing mapping efforts largely focus on major cities in developed regions and depend on data sources unavailable in many developing countries. Such data limitations hinders the establishment of consistent urban indicators capturing accessibility, urban form, and economic concentration patterns. Here, we develop and validate a global map of city economic centers for the year 2020 by integrating nighttime light and the Global Human Settlement Layer within an advanced geospatial modeling framework. Our analysis reveals that monocentric cities still dominate our planet, accounting for over 80% of all cities. However, these cities encompass only about 36.1% of the total urbanized area, 29.5% of the urban population, and 26% of the nighttime light intensity, revealing large disparities in urban development. By examining the spatial distribution of centers across multiple scales, we find that the average coverage area of economic centers remains remarkably stable across countries. This scaling pattern may imply that city expansion is primarily accompanied by an increase in the number of centers. Consequently, the relationship between urban area and center count yields a near-constant level of average accessibility within cities -- contrasting sharply with monocentric models that predict declining accessibility with increasing city size. Our global dataset and findings offer new insights into the structure and evolution of cities.
 
 ## Codes
 
@@ -35,15 +35,19 @@ For the purpose of replication, users are recommended to flow this workflow:
 - Run `execute.py` to generate the cities and centers of the country.
 
 ## Dataset
+We provide two types of center: the point location and its contour.
+- Point
 The urban centers are saved in CSV format, with each row representing one center, encoded in UTF-8. The meanings of the fields are given below.
-- iso: The ISO alpha-3 code of the country that the center belonged to.
-- country_name: The name of the belonged country.
-- cluster_id: The id of the belonged cluster, reindexed for each country.
-- center_id: The id of the center, reindexed for each urban area.
-- is_mc: Whether the center is the main center of the urban area, 0 for false, 1 for true.
-- center_name: The geoname of the center.
-- latitude: The latitude of the center under the WGS84 coordinate reference system.
-- longitude: The longitude of the center under the WGS84 coordinate reference system.
+    - iso: The ISO alpha-3 code of the country that the center belonged to.
+    - country_name: The name of the belonged country.
+    - cluster_id: The id of the belonged cluster, reindexed for each country.
+    - center_id: The id of the center, reindexed for each urban area.
+    - is_mc: Whether the center is the main center of the urban area, 0 for false, 1 for true.
+    - center_name: The geoname of the center.
+    - latitude: The latitude of the center under the WGS84 coordinate reference system.
+    - longitude: The longitude of the center under the WGS84 coordinate reference system.
+- Contour
+
 
 ## Contact
 
