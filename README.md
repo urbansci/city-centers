@@ -35,8 +35,8 @@ For the purpose of replication, users are recommended to flow this workflow:
 - Run `execute.py` to generate the cities and centers of the country.
 
 ## Dataset
-We provide two types of center: the point location and its contour.
-- Point
+We provide two types of center: the point location and its contour extent.
+### Point
 The urban centers are saved in CSV format, with each row representing one center, encoded in UTF-8. The meanings of the fields are given below.
     - iso: The ISO alpha-3 code of the country that the center belonged to.
     - country_name: The name of the belonged country.
@@ -46,7 +46,7 @@ The urban centers are saved in CSV format, with each row representing one center
     - center_name: The geoname of the center.
     - latitude: The latitude of the center under the WGS84 coordinate reference system.
     - longitude: The longitude of the center under the WGS84 coordinate reference system.
-- Contour
+### Contour
 
 
 ## Contact
