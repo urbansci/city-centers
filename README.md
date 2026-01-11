@@ -1,9 +1,9 @@
-# Mapping urban economic centers worldwide
-Shuai Pang, Junlong Zhang and Lei Dong
+# Global evidence for a consistent spatial footprint of intra-urban centers
+Shuai Pang, Junlong Zhang, Yu Liu and Lei Dong
 
 ## Abstract
 
-Urban centers are key engines of regional development, yet accurately defining and identifying their economic cores at the global scale remains a major challenge. Existing mapping efforts largely focus on major cities in developed regions and depend on data sources unavailable in many developing countries. Such data limitations hinders the establishment of consistent urban indicators capturing accessibility, urban form, and economic concentration patterns. Here, we develop and validate a global map of city economic centers for the year 2020 by integrating nighttime light and the Global Human Settlement Layer within an advanced geospatial modeling framework. Our analysis reveals that monocentric cities still dominate our planet, accounting for over 80% of all cities. However, these cities encompass only about 36.1% of the total urbanized area, 29.5% of the urban population, and 26% of the nighttime light intensity, revealing large disparities in urban development. By examining the spatial distribution of centers across multiple scales, we find that the average coverage area of economic centers remains remarkably stable across countries. This scaling pattern may imply that city expansion is primarily accompanied by an increase in the number of centers. Consequently, the relationship between urban area and center count yields a near-constant level of average accessibility within cities -- contrasting sharply with monocentric models that predict declining accessibility with increasing city size. Our global dataset and findings offer new insights into the structure and evolution of cities.
+Urban space is highly heterogeneous, with population and human activities concentrating in localized centers. However, the global organization of such intra-urban centers remains poorly understood due to the lack of consistent, comparable data. Here we develop a scalable geospatial framework to identify intra-urban activity centers worldwide using nighttime light observations. Applying this approach to more than 9,500 cities, we construct a high-resolution global dataset of over 15,000 centers. We uncover a striking regularity: despite vast differences in city size, regional development, and population density, the built-up area associated with individual centers remains remarkably consistent. Across cities, total urban area scales proportionally with the number of centers, yielding a stable mean spatial footprint. This regularity holds at the micro-scale, where Voronoi-based service areas exhibit a characteristic size that is persistent across countries and independent of local population concentration. As a geometric consequence, this polycentric multiplication maintains stable average distances to the nearest center as cities expand, preventing the accessibility decay inherent in monocentric growth. These findings reveal a universal organizing principle whereby urban expansion is accommodated through the replication of activity centers with a consistent spatial extent, providing a new empirical foundation for understanding the nature of urban growth.
 
 ## Codes
 
@@ -14,8 +14,8 @@ Urban centers are key engines of regional development, yet accurately defining a
 - Method: Codes to generate the dataset.
     - Centers identification:
         * `contours_generator.py`: Class to generate the contours maps.
-        * `centers_generator.py`: Class to identify economic centers within urban areas, based on a specified contour parameter value.. 
-        * `centers_identification.py`: Module to generate economic centers for each country/region under different contour paramters.
+        * `centers_generator.py`: Class to identify urban centers within urban areas, based on a specified contour parameter value.. 
+        * `centers_identification.py`: Module to generate urban centers for each country/region under different contour paramters.
     - Majority voting:
         * `majority_voting.py`: Module to obtain the voted results among different contour paramter values.
     - Attribute enhancement:
@@ -35,7 +35,11 @@ For the purpose of replication, users are recommended to flow this workflow:
 ## Dataset
 We provide two types of center: the point location and its contour extent.
 ### Point
-The economic centers are saved in CSV format, with each row representing one center, encoded in UTF-8. The meanings of the fields are given below.
+There exist two point datasets regarding whether they have been manually refined.
+   * `centers_raw.csv`: The direct output of the detection algorithm without human intervention.
+   * `centers_refined.csv`: The version after human main center refinement procedure to enhance usability in applied contexts.
+
+Both are saved in CSV format, with each row representing one center, encoded in UTF-8. The meanings of the fields are given below.
 - iso: The ISO alpha-3 code of the country that the center belonged to.
 - country_name: The name of the belonged country.
 - cluster_id: The id of the belonged GHSL urban area.
@@ -43,11 +47,11 @@ The economic centers are saved in CSV format, with each row representing one cen
 - name: The geoname of the center.
 - category: The functional category of the center.
 - count: The vote count of the center during the majority voting process.
-- is_refined: Whether the center location has been manually refined, 0 for false, 1 for true.
+- is_refined: Whether the center location has been manually refined, 0 for false, 1 for true. Only for `centers_refined.csv`.
 - latitude: The latitude of the center under the WGS84 coordinate reference system.
 - longitude: The longitude of the center under the WGS84 coordinate reference system.
 ### Contour
-The contours corresponding to economic centers are saved in CSV format, with each row representing one contour, encoded in UTF-8. The meanings of the fields are given below.
+The contours corresponding to urban centers are saved in CSV format, with each row representing one contour, encoded in UTF-8. The meanings of the fields are given below.
 - iso: The ISO alpha-3 code of the country that the center belonged to.
 - country_name: The name of the belonged country.
 - parameter: The value of the minimum contour area under which the contour is identified.
