@@ -35,7 +35,7 @@ For the purpose of replication, users are recommended to flow this workflow:
 ## Dataset
 We provide two types of center: the point location and its contour extent.
 ### Point
-There exist two point datasets regarding whether they have been manually refined.
+The point data is available in two versions, distinguished by whether they have been manually refined.
    * `centers_raw.csv`: The direct output of the detection algorithm without human intervention.
    * `centers_refined.csv`: The version after human main center refinement procedure to enhance usability in applied contexts.
 
