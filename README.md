@@ -22,9 +22,10 @@ Urban space is highly heterogeneous, with population and human activities concen
         * `attribute_enhancement.py`: Module to provide toponyms and functional categories for centers.
    
 - Graphs: Codes to plot some of the figures in the paper.
-    * `polycentricity.py`: Figure 3b & 3c: *Characteristics of monocentric and polycentric cities*.
-    * `spatial_pattern.py`: Figure 4b, 4c & 4d: *Spatial distribution of centers within the city*. 
-    * `average_distance.py`: Figure 5b: *Population-weighted average distance to the center*.
+    * `area_vs_center_number.py`: Figure 2b & 2c: *Geographic distribution of global urban centers*.
+    * `spatial_pattern.py`: Figure 3b, 3c, 3d & 3e: *Spatial distribution of centers within the city*. 
+    * `average_distance.py`: Figure 4b: *Population-weighted average distance to the center*.
+    * `population_decay.py`: Figure 5: *Population density decay from urban center to peripheries*.
 
 ### Instruction 
 For the purpose of replication, users are recommended to flow this workflow: 
