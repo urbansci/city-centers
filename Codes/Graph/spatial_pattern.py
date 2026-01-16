@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # @author  : Shuai Pang
-# @time    : 2025-11
+# @time    : 2026-01
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -8,7 +8,6 @@ import numpy as np
 import seaborn as sns
 import Parameters.consts as const
 import Parameters.plot_utils as utils
-from GHSL.attribute_enhancement import fileItems
 import pandas as pd
 from scipy.stats import gaussian_kde
 from geovoronoi import voronoi_regions_from_coords
@@ -17,14 +16,16 @@ from tqdm import tqdm
 from shapely.geometry import LineString
 from shapely.ops import split
 from shapely.ops import unary_union
+import matplotlib.gridspec as gridspec
+from scipy import stats
 
 """
-Module for the generation of the ``Spatial distribution of centers within the city'' plot (Figure 4b, 4c and 4d).
+Module for the generation of the ``Spatial distribution of centers within the city'' plot (Figures 3b-e).
 """
 
 def world_scale_area(ax, gdf):
     """
-    Plot kernal density estimation of city areas grouped by the number of centers (Figure 4b).
+    Plot kernal density estimation of city areas grouped by the number of centers (Figure 3b).
 
     Args:
         ax (plt.Axes): The axes to be plotted on.
@@ -60,7 +61,7 @@ def world_scale_area(ax, gdf):
 
 def country_scale_area(ax, gdf):
     """
-    Violin plot to show the area distribution of centers' voronoi polygons for multiple countries (Figure 4c).
+    Violin plot to show the area distribution of centers' voronoi polygons for multiple countries (Figure 3c).
 
     Args:
         ax (plt.Axes): The axes to be plotted on.
@@ -77,7 +78,7 @@ def country_scale_area(ax, gdf):
     violin_width = 25
     violin_gap = 0.25
 
-    scatter_size = 15
+    scatter_size = 10
     lw = 0.5
 
     for i, country in enumerate(countries):
@@ -119,7 +120,7 @@ def country_scale_area(ax, gdf):
                 zorder=3
             )
             if t == 'Poly':
-                print(country, mean_val)
+                print(f'{country}, {mean_val} ± {std}')
 
     ax.legend().remove()
 
@@ -136,7 +137,7 @@ def country_scale_area(ax, gdf):
 
 def city_scale_area(ax, gdf):
     """
-    Violin plot to show the area distribution of centers' voronoi polygons for multiple cities (Figure 4d).
+    Error bar plot to show the area distribution of centers' voronoi polygons for multiple cities (Figure 3d).
 
     Args:
         ax (plt.Axes): The axes to be plotted on.
@@ -155,71 +156,89 @@ def city_scale_area(ax, gdf):
 
     gap = 0.4
     x_offset = 60
-    y_offset = 0.04
-    lw = 0.5
-    violin_width = 10
+    scatter_size = 15
+    lw = 0.8
     color = '#AF58BA'
     means = []
 
     for i, country in enumerate(city_dict.keys()):
         for j, city in enumerate(city_dict[country]):
-            values = gdf[(gdf['Country'] == country) & (gdf['ID_UC_G0'] == city)]['Area'].values
-
-            # KDE
-            kde = gaussian_kde(values, bw_method=0.3)
-            x = np.linspace(0, 150, 200)
-            density = kde(x) * violin_width
-
             y_pos = i + j * gap
-            ax.fill_between(
-                x + x_offset,
-                y_pos,
-                y_pos + density,
-                facecolor='#C061CC',
-                alpha=0.6,
-                edgecolor='none',
-                lw=0,
-                zorder=5
-            )
+            values = gdf[(gdf['Country'] == country) & (gdf['ID_UC_G0'] == city)]['Area'].values
 
             mean_val = np.mean(values)
             means.append(mean_val)
-            y_center = y_pos - y_offset
-            ax.scatter(
-                mean_val + x_offset,
-                y_center,
-                marker='s',
-                s=10,
-                color=color,
-                edgecolor='none',
-                lw=0,
-                zorder=10
-            )
+            ax.scatter( mean_val, y_pos, marker='s', s=scatter_size, color=color, edgecolor='none', lw=0, zorder=10)
+
             std = np.std(values)
-            ax.plot([x_offset + mean_val - std, x_offset + mean_val + std], [y_center, y_center], color='black', lw=lw, solid_capstyle='round')
+            ax.plot([mean_val - std,  mean_val + std], [y_pos, y_pos], color='black', lw=lw, solid_capstyle='round')
 
-            # baseline
-            ax.hlines(y=y_pos, xmin=x_offset, xmax=x_offset+150, color=color, lw=0.2, alpha=0.6)
-
-            ax.text(x_offset-10, y_pos, city_name[city], va='center', ha='right', color='black')
-            # print(city_name[city], mean_val, std)
+            ax.text(-10, y_pos, city_name[city], va='center', ha='right', color='black')
 
     for i, country in enumerate(city_dict.keys()):
-        ax.text(x_offset-60, i + gap/2,const.NAMES[country], va='center', ha='center', color='black')
-    ax.axvline(np.mean(means)+x_offset, color=color, lw=0.8, linestyle=(-3, (6, 6)), zorder=1)
+        ax.text(-70, i + gap/2,const.NAMES[country], va='center', ha='center', color='black')
+    ax.axvline(np.mean(means), color=color, lw=0.8, linestyle=(-3, (6, 6)), zorder=1)
 
-    ax.set_xlim(0, 150+x_offset)
+    ax.set_xlim(0 - x_offset, 100)
     ax.set_ylim(-0.2, 4.8)
-    ax.set_xticks([x_offset, 50+x_offset, 100+x_offset, 150+x_offset], labels=[0,50,100,150])
+    ax.set_xticks([0, 25, 50, 75, 100], [0, 25, 50, 75, 100])
     ax.set_yticks([])
     ax.set_xlabel(rf"Area of the center's voronoi polygon (km²)", fontname="Arial")
     ax.set_ylabel(None)
 
     utils.FormatAxis(ax, positions=[])
 
+def area_density(input_ax):
+    """
+    Investigate the relationship between area and population density of voronoi polygons (Figure 3e).
+    """
+    voronois = gpd.read_file(const.FILE_PATH + fileItems[3])
+    voronois['pop_density'] = voronois['Pop']/voronois['Area']
+
+    fig = input_ax.get_figure()
+    ss = input_ax.get_subplotspec()
+
+    sub_gs = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=ss, hspace=0.2)
+
+    ax = [None]*3
+    ax[0] = fig.add_subplot(sub_gs[0, 0])
+    ax[1] = fig.add_subplot(sub_gs[1, 0])
+    ax[2] = fig.add_subplot(sub_gs[2, 0])
+
+    data = [ voronois[voronois['Country'] == 2],
+             voronois[voronois['Country'] == 232],
+             voronois[voronois['Country'].isin([219, 150, 144])] ]
+
+    for i, df in enumerate(data):
+        x = df['pop_density']
+        y = df['Area']
+        ax[i].scatter(x, y, marker='s', s=6, linewidths=0, c='#C061CC', alpha=0.6)
+
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+        r_squared = r_value ** 2
+
+        print(f"i:  Slope: {slope:.4f},  R-squared: {r_squared:.4f}, P-value: {p_value:.4e}")
+
+    input_ax.set_xlabel(r'log$_{\mathregular{10}}$ Population density (people/km²)', fontsize=utils.LABEL_SIZE, labelpad=11)
+    input_ax.set_ylabel(r"log$_{\mathregular{10}}$ Area of the center's voronoi polygon (km²)", fontsize=utils.LABEL_SIZE, labelpad=10)
+
+    utils.FormatAxis(input_ax,[], x_ticks=False, y_ticks=False, x_labels=False, y_labels=False)
+
+    for _ax in ax:
+        _ax.set_xlim(10**3, 10**4.5)
+        _ax.set_ylim(1, 10**3)
+
+        _ax.set_xscale('log')
+        _ax.set_yscale('log')
+
+        _ax.set_xticks(ticks=[10**3, 10**3.5, 10**4, 10**4.5], labels=[3, 3.5, 4, 4.5])
+        _ax.set_yticks(ticks=[10**0, 10**1, 10**2, 10**3], labels=[0, 1, 2, 3])
+
+        utils.FormatAxis(_ax)
+
 def generate_voronois():
     """
-    Generate the voronoi partitions of the centers within each city.
+    Generate the voronoi partitions of centers within each city.
     """
 
     def points_to_voronoi(points_gdf, clip_poly, idx, country):
@@ -330,20 +349,27 @@ countries = [232, 150, 144, 2, 219]
 
 if __name__ == '__main__':
     # generate_voronois()
-    _, ax = plt.subplots(2, 2, figsize = (17/2.54, 15/2.54), dpi=600,  gridspec_kw={
-        'width_ratios': [1, 1],
-        'height_ratios': [3, 4]})
+    plt.figure(figsize=(18/2.54, 15/2.54), dpi=600,)
+    gs = gridspec.GridSpec(2, 6, height_ratios=[1, 1])
 
-    world_scale_area(ax[0, 1], gpd.read_file(const.FILE_PATH + fileItems[0]))
-    country_scale_area(ax[1, 0], gpd.read_file(const.FILE_PATH + fileItems[3]))
-    city_scale_area(ax[1, 1], gpd.read_file(const.FILE_PATH + fileItems[3]))
+    ax = [None] * 6
+    ax[0] = plt.subplot(gs[0, 0:3])
+    ax[1] = plt.subplot(gs[0, 4:])
+    ax[2] = plt.subplot(gs[1, 0:2])
+    ax[3] = plt.subplot(gs[1, 2:4])
+    ax[4] = plt.subplot(gs[1, 4:])
 
-    ax[0,0].axis('off')
-    ax[0,0].annotate("a", xy=(-0.12, 1.05), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
-    ax[0,1].annotate("b", xy=(-0.12, 1.05), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
-    ax[1,0].annotate("c", xy=(-0.12, 1.05), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
-    ax[1,1].annotate("d", xy=(-0.12, 1.05), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
+    world_scale_area(ax[1], gpd.read_file(const.FILE_PATH + fileItems[0]))
+    country_scale_area(ax[2], gpd.read_file(const.FILE_PATH + fileItems[3]))
+    city_scale_area(ax[3], gpd.read_file(const.FILE_PATH + fileItems[3]))
+    area_density(ax[4])
 
-    plt.subplots_adjust(left=0.06, bottom=0.08, right=0.98, top=0.96, wspace=0.1)
-    plt.savefig(r'D:\Research\Graph\GHSL\panel\spatial_pattern.png')
+    ax[0].axis('off')
+    ax[1].annotate("b", xy=(-0.18, 1.02), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
+    ax[2].annotate("c", xy=(-0.2, 1.02), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
+    ax[3].annotate("d", xy=(-0.18, 1.02), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
+    ax[4].annotate("e", xy=(-0.18, 1.02), xycoords="axes fraction", fontsize=utils.ORDER_SIZE, weight="bold")
+
+    plt.subplots_adjust(left=0.08, bottom=0.08, right=0.98, top=0.96, wspace=0.5, hspace=0.2)
+    plt.savefig(r'D:\Research\Graph\GHSL\panel\spatial_pattern.pdf')
 

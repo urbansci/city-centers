@@ -16,7 +16,7 @@ from scipy.optimize import curve_fit
 from rasterio.features import geometry_window
 
 """
-Module for the generation of the ``Population-weighted average distance to the center'' plot (Figure 5b).
+Module for the generation of the ``Population-weighted average distance to the center'' plot (Figure 4b).
 """
 
 def average_distance_of_city(pop_raster, poly_geom, points_geoms):
@@ -101,7 +101,7 @@ def plot_actuality_vs_mono(ax):
         Errorbar plot to show the distribution of distance for urban areas grouped by the center number.
         """
         ax.errorbar(data.mean().index, data.mean().values, yerr=data.std().values, fmt=marker, markersize=4,
-                    markerfacecolor=color, color='black', markeredgewidth=0.3, capsize=2, capthick=0.25, elinewidth=0.25,
+                    markerfacecolor=color, color='black', markeredgewidth=0.3, capsize=2, elinewidth=0.3,
                     label=label, zorder=10)
 
     polys = pop_weighted_distance().dropna(subset='dist_all')
@@ -121,7 +121,7 @@ def plot_actuality_vs_mono(ax):
           f"Average distance to main center: {dist_main.mean().mean()} \n")
 
     # Statistics
-    ax.hlines(dist.mean().mean(), *ax.get_xlim(), color=colors[0], lw=0.5, zorder=20)
+    ax.hlines(dist.mean().mean(), *ax.get_xlim(), color=colors[0], lw=0.8, zorder=20)
 
     def power_law(x, a, b):
         return a * x ** b
@@ -141,7 +141,7 @@ def plot_actuality_vs_mono(ax):
           f"r2 = {r2:.4f}")
     x_fit = np.linspace(0, 21, 200)
     y_fit = power_law(x_fit, a, b)
-    ax.plot(x_fit, y_fit, color=colors[1], lw=0.5, zorder=20)
+    ax.plot(x_fit, y_fit, color=colors[1], lw=0.8, zorder=20)
 
     ax.set_xlabel('Center number', fontsize=utils.LABEL_SIZE, labelpad=utils.LABEL_PAD)
     ax.set_ylabel(f'Population-weighted average distance (km)', fontsize=utils.LABEL_SIZE, labelpad=utils.LABEL_PAD)
@@ -153,9 +153,8 @@ def plot_actuality_vs_mono(ax):
     ax.legend().remove()
     utils.FormatAxis(ax)
 
-
 fileItems = [r'GHSL\Global\globalCenters_edited.shp', r'GHSL\Global\globalClusters.shp',
-             r'Data\WorldPop\World\ppp_2020_1km_Aggregated.tif']
+             r'Data\Pop\WorldPop\ppp_2020_1km_Aggregated.tif']
 colors = ['#CF82D9', '#1DA0CC']
 
 if __name__ == '__main__':
@@ -168,4 +167,4 @@ if __name__ == '__main__':
 
     plt.subplots_adjust(top=0.9, bottom=0.1, left=0.05, right=0.98, wspace=0.1, hspace=0.2)
 
-    plt.savefig(r'D:\Research\CityCenter\Statistics\Accessibility\dist_bin.pdf')
+    plt.savefig(r"D:\Research\Graph\GHSL\panel\average_distance.pdf")
