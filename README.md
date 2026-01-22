@@ -59,6 +59,10 @@ The contours corresponding to urban centers are saved in CSV format, with each r
 - area: The enclosed area of the contour, in the unit of square kilometers.
 - geometry: The geographic shape of the contour under the WGS84 coordinate reference system.
 
+### Citation
+
+- Shuai Pang, Junlong Zhang, Yu Liu, and Lei Dong. Global evidence for a consistent spatial footprint of intra-urban centers. https://arxiv.org/abs/2503.06445
+
 ## Contact
 
 If you have any questions, feel free to contact us through email (pwenss2004@gmail.com).
