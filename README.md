@@ -1,4 +1,4 @@
-Intra-urban center data
+# Urban center data
 Shuai Pang, Junlong Zhang, Yu Liu and Lei Dong
 
 ## Abstract
