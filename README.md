@@ -1,4 +1,4 @@
-# Global evidence for a consistent spatial footprint of intra-urban centers
+Intra-urban center data
 Shuai Pang, Junlong Zhang, Yu Liu and Lei Dong
 
 ## Abstract
