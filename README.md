@@ -1,10 +1,6 @@
 # Urban center data
 Shuai Pang, Junlong Zhang, Yu Liu and Lei Dong
 
-## Abstract
-
-Urban space is highly heterogeneous, with population and human activities concentrating in localized centers. However, the global organization of such intra-urban centers remains poorly understood due to the lack of consistent, comparable data. Here we develop a scalable geospatial framework to identify intra-urban activity centers worldwide using nighttime light observations. Applying this approach to more than 9,500 cities, we construct a high-resolution global dataset of over 15,000 centers. We uncover a striking regularity: despite vast differences in city size, regional development, and population density, the built-up area associated with individual centers remains remarkably consistent. Across cities, total urban area scales proportionally with the number of centers, yielding a stable mean spatial footprint. This regularity holds at the micro-scale, where Voronoi-based service areas exhibit a characteristic size that is persistent across countries and independent of local population concentration. As a geometric consequence, this polycentric multiplication maintains stable average distances to the nearest center as cities expand, preventing the accessibility decay inherent in monocentric growth. These findings reveal a universal organizing principle whereby urban expansion is accommodated through the replication of activity centers with a consistent spatial extent, providing a new empirical foundation for understanding the nature of urban growth.
-
 ## Codes
 
 - Parameters: Constants for convenience.
