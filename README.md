@@ -1,5 +1,4 @@
 # Urban center data
-Shuai Pang, Junlong Zhang, Yu Liu and Lei Dong
 
 ## Codes
 
@@ -31,6 +30,7 @@ For the purpose of replication, users are recommended to flow this workflow:
 
 ## Dataset
 We provide two types of center: the point location and its contour extent.
+
 ### Point
 The point data is available in two versions, distinguished by whether they have been manually refined.
    * `centers_raw.csv`: The direct output of the detection algorithm without human intervention.
@@ -47,6 +47,7 @@ Both are saved in CSV format, with each row representing one center, encoded in 
 - is_refined: Whether the center location has been manually refined, 0 for false, 1 for true. Only for `centers_refined.csv`.
 - latitude: The latitude of the center under the WGS84 coordinate reference system.
 - longitude: The longitude of the center under the WGS84 coordinate reference system.
+  
 ### Contour
 The contours corresponding to urban centers are saved in CSV format, with each row representing one contour, encoded in UTF-8. The meanings of the fields are given below.
 - iso: The ISO alpha-3 code of the country that the center belonged to.
