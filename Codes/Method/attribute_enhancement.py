@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # @author  : Shuai Pang
-# @time    : 2025-11
+# @time    : 2026-04
 
 import glob
 import pandas as pd
@@ -18,7 +18,7 @@ import Parameters.consts as const
 Module providing additional attributes to the identified centers, including the geoname based on GeoNames and the functional
 category based on Foursquare OS Places.
 
-For each center, generate a 1-km radius buffer, classify its functional category based on the categorydistribution of 
+For each center, generate a 1-km radius buffer, classify its functional category based on the category distribution of 
 poi points within it, and assign its geoname based on the GeoNames points within it.
 """
 
@@ -48,14 +48,13 @@ def generate_buffers():
         return buffer_polygon
 
     centers = gpd.read_file(const.FILE_PATH + fileItems[0])
-    buffers = gpd.GeoDataFrame({'Center_ID': centers.index.tolist()},
+    buffers = gpd.GeoDataFrame({'Center_ID': centers['ID'].tolist()},
                                geometry=[GeodesicBuffer(center.geometry, 1) for _, center in centers.iterrows()],
                                crs="EPSG:4326")
     del centers
     return buffers
 
-
-def classify_based_on_buffers(buffers):
+def function_classification(buffers):
     """
     Classify the centers' functional categories.
     """
@@ -174,29 +173,27 @@ def names_assignment(buffers):
     """
 
     with Env():
-        with fiona.open(const.FILE_PATH + fileItems[3], encoding='utf-8') as src:
+        with fiona.open(const.FILE_PATH + fileItems[2], encoding='utf-8') as src:
             geonames = gpd.GeoDataFrame.from_features(src, crs=src.crs)
             geonames = geonames.to_crs(buffers.crs)
 
     joined = gpd.sjoin(buffers, geonames, how='left', predicate='contains').reset_index(drop=True)
-    names = joined.groupby('Center_ID').apply(lambda x: x.loc[x['population'].idxmax(), 'asciiname']if x['population'].notna().any() else None)
+    names = joined.groupby('Center_ID').apply(lambda x: x.loc[x['population'].idxmax(), 'asciiname']if x['population'].notna().any() else None, include_groups=False)
     names.name = 'Name'
 
     return names
 
-fileItems = [r'GHSL/Global/globalCenters_edited_v2.shp', r'GHSL\Global\buffers.shp', r'GHSL/Global/dataset.shp', r'Data/GeoNames/global.shp']
+fileItems = [r'2020/Center/center_a4.shp', r'Release/buffers.shp', r'2020/Input/geonames.shp', r'Release/centers.shp']
 if __name__ == '__main__':
     centers = gpd.read_file(const.FILE_PATH + fileItems[0])
 
     buffers = generate_buffers()
-    buffers.to_file(const.FILE_PATH + fileItems[1])
-
-    categories = classify_based_on_buffers(buffers)
+    categories = function_classification(buffers)
     names = names_assignment(buffers)
 
-    centers['Entropy'] = -1
+    centers['Entropy'] = -1.0
     centers['Category'] = 'No-POI'
     centers['Name'] = None
     centers.update(categories[['Entropy', 'Category']])
     centers.update(names)
-    centers.to_file(const.FILE_PATH + fileItems[2])
+    centers.to_file(const.FILE_PATH + fileItems[3])

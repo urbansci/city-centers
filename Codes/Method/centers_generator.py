@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # @author  : Shuai Pang
-# @time    : 2025-11
+# @time    : 2026-04
 
 import os
 from itertools import islice
@@ -10,16 +10,18 @@ from collections import defaultdict
 import rasterio
 import rasterio.mask
 import pandas as pd
+import geopandas as gpd
+import numpy as np
 from geopandas.tools import sjoin
 from tqdm import tqdm
 from rasterstats import zonal_stats
 from shapely.strtree import STRtree
-from .contours_generator import *
+import Parameters.consts as const
 
 """
 Module generating centers within urban areas for each country/region.
 
-This module identifies the economic centers and labels the main center within the urban area.
+This module identifies the urban centers and labels the main center within the urban area.
 """
 
 
@@ -39,7 +41,7 @@ class Contour:
         geometry (shapely.geometry): A geometry object to hold the geometry data of the contour.
         ID (int): The unique identifier for the contour.
         CenterID (int): The ID of the center corresponding to this contour. Only used for seed contours (contours correspond
-            to the economic centers).
+            to the urban centers).
         ClusterID (int): The ID of the city containing this contour.
         Value (int): The brightness value of the contour.
         Area (float): The enclosed area of the contour.
@@ -113,7 +115,6 @@ class CentersGenerator():
 
     def __init__(self):
 
-        self.contoursGenerator = None
         self.clusters = None
         self.centers = None
         self.seedContours = None
@@ -143,36 +144,42 @@ class CentersGenerator():
 
         return lat, lon
 
-    def DetectCenter(self, NTLPath, contourPath):
+    def DetectCenter(self, NTLPath, contourPath, NTLArray=None, NTLTransform=None):
         """
         Detect the centers within this urban area .
 
         Args:
             NTLPath (str): The file path of the NTL data.
             contourPath (str): The file path of the contours of the country/region.
+            NTLArray (ndarray, optional): Pre-loaded NTL raster array. If None, reads from NTLPath.
+            NTLTransform (affine.Affine, optional): Pre-loaded NTL transform. If None, reads from NTLPath.
 
         Returns:
             None. Initialize the global variable ``centers'' and ``seedContours'' and filter the ``clusters''.
         """
 
-        NTL, NTLArray, NTLTransform = self.ReadRaster(NTLPath)
+        if NTLArray is None or NTLTransform is None:
+            NTL, NTLArray, NTLTransform = self.ReadRaster(NTLPath)
+        else:
+            NTL = rasterio.open(NTLPath)
         gdf = gpd.read_file(contourPath)
 
         # Construct spatial Rtree for contours
-        if const.contour_tree is None:
-            const.contour_tree = STRtree(gdf.geometry.values)
-        tree = const.contour_tree
+        tree = STRtree(gdf.geometry.values)
 
         self.clusters.sort_values(by='Area', ascending=False, inplace=True)
-        for idx, _cluster in tqdm(self.clusters.iterrows(), desc=f"cluster", position=2, leave=False, total=self.clusters.shape[0]):
+        iterator = self.clusters.iterrows()
+        if self.verbose:
+            iterator = tqdm(iterator, desc="cluster", position=2, leave=False, total=self.clusters.shape[0])
+        for _, _cluster in iterator:
             # Step 1: Extract all contours within the cluster
             indices = tree.query(_cluster.geometry)
-            lines = gdf.iloc[[idx for idx in indices if gdf.iloc[idx]['Area'] >= const.MINIMUM_CONTOUR_AREA and gdf.iloc[idx].geometry.intersects(_cluster.geometry)]]
+            lines = gdf.iloc[[idx for idx in indices if gdf.iloc[idx]['Area'] >= self.minContourArea and gdf.iloc[idx].geometry.intersects(_cluster.geometry)]]
             if len(lines) == 0:
                 continue
 
             lines = lines.sort_values(by='Area', ascending=False)
-            contours = [Contour(line['geometry'], i, idx, line['Value'], line['Area']) for i, (_, line) in
+            contours = [Contour(line['geometry'], i, _cluster['ID_UC_G0'], line['Value'], line['Area']) for i, (_, line) in
                         enumerate(lines.iterrows())]  # [ID: :obj:`Contour`]
 
             # Step 2: Construct topology tree
@@ -219,7 +226,7 @@ class CentersGenerator():
                 lat, lng = self.GetBrightestPoint(psc.geometry, NTL)
                 # Ensure the center locate within the city boundary.
                 if Point(lng, lat).within(_cluster.geometry):
-                    _centers.append(Center(i + len(self.centers), Point(lng, lat), lat, lng, idx))
+                    _centers.append(Center(i + len(self.centers), Point(lng, lat), lat, lng, _cluster['ID_UC_G0']))
                     _seedContours.append(psc)
                     psc.CenterID = i + len(self.centers)
                     i += 1
@@ -244,12 +251,11 @@ class CentersGenerator():
 
         # Calculate the count of poi points within each seed contour
         BATCH_SIZE = 100_000
-        trees = []
-        with fiona.open(POIPath, layer=0) as poi_src:
+        with fiona.open(POIPath) as poi_src:
             batch_index = 0
             iterator = iter(poi_src)
 
-            with tqdm(desc="Batch", position=2, leave=False) as pbar:
+            with tqdm(desc="Batch", position=2, leave=False, disable=not self.verbose) as pbar:
                 while True:
                     # Read next batch
                     batch_feats = list(islice(iterator, BATCH_SIZE))
@@ -260,11 +266,7 @@ class CentersGenerator():
                     batch = [shape(feat['geometry']) for feat in batch_feats]
 
                     # Build STRtree spatial index for the current batch
-                    if const.poi_tree is None:
-                        tree = STRtree(batch)
-                        trees.append(tree)
-                    else:
-                        tree = const.poi_tree[batch_index]
+                    tree = STRtree(batch)
 
                     # Inner loop: update each contour
                     for contour in self.seedContours:
@@ -275,9 +277,6 @@ class CentersGenerator():
                     # Update progress bar by batch
                     pbar.update(1)
                     batch_index += 1
-
-        if const.poi_tree is None:
-            const.poi_tree = trees
 
         # Group seed contours by urban area
         groups = defaultdict(list)
@@ -316,28 +315,31 @@ class CentersGenerator():
         return raster, array, transform
 
 
-    def Execute(self, clusters, NTLPath, smoothNTLPath, POIPath, contourPath):
+    def Execute(self, clusters, NTLPath, smoothNTLPath, POIPath, contourPath, minContourArea=None,
+                NTLArray=None, NTLTransform=None, verbose=True):
         """
         Generate the centers within the urban areas.
 
         Args:
             clusters (geopandas.GeoDataFrame): The object representing the urban areas.
-            NTLPath (str): The file path of the NTL of the country/region.
-            smoothNTLPath (str): The file path of the smoothed NTL of the country/region.
-            POIPath (str): The file path of the POI data of the country/region.
-            contourPath (str): The file path of the contours of the country/region.
+            NTLPath (str): The file path of the NTL raster.
+            smoothNTLPath (str): The file path of the smoothed NTL raster.
+            POIPath (str): The file path of the POI data.
+            contourPath (str): The file path of the contours.
+            minContourArea (int, optional): The minimum contour area threshold. Defaults to const.MINIMUM_CONTOUR_AREA.
+            NTLArray (ndarray, optional): Pre-loaded NTL raster array. Avoids redundant reads in multiprocessing.
+            NTLTransform (affine.Affine, optional): Pre-loaded NTL transform.
+            verbose (bool, optional): Whether to show progress bars. Defaults to True.
 
         Returns:
             None. Construct the global variables ``clusters`` and ``seedContours``.
         """
 
-        if not os.path.exists(contourPath):
-            self.contoursGenerator = ContoursGenerator()
-            self.contoursGenerator.Execute(NTLPath, smoothNTLPath, contourPath)
-
         self.centers = []
         self.seedContours = []
         self.clusters = clusters
+        self.minContourArea = minContourArea if minContourArea is not None else const.MINIMUM_CONTOUR_AREA
+        self.verbose = verbose
 
-        self.DetectCenter(NTLPath, contourPath)
+        self.DetectCenter(NTLPath, contourPath, NTLArray=NTLArray, NTLTransform=NTLTransform)
         self.IdentifyMainCenter(POIPath)

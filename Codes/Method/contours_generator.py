@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # @author  : Shuai Pang
-# @time    : 2025-11
+# @time    : 2026-04
 
 import os.path
 from osgeo import gdal, ogr
@@ -11,13 +11,13 @@ from tqdm import tqdm
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from geopandas import GeoDataFrame
-from ..Parameters import consts as const
+import Parameters.consts as const
 
 """
-Module generating the contours map of the smoothed NTL for each country/region.
+Module generating the contours map of the smoothed NTL.
 
-For the NTL of each country/region, this module first conduct the Gaussian convolution, then generate the contours map 
-and calculate the enclosed area of contours.
+This module first conducts the Gaussian convolution, then generates the contours map
+and calculates the enclosed area of contours.
 """
 
 class ContoursGenerator():
@@ -27,67 +27,82 @@ class ContoursGenerator():
     def __init__(self):
         return
 
-    def GaussianConvolution(self, NTLPath, smoothNTLPath, radius, sigma):
-        """Conduct gaussian smooth to the NTL for each country/region.
+    def GaussianConvolution(self, NTLPath, smoothNTLPath, radius, sigma, tile_size=4096):
+        """Conduct gaussian smooth to the NTL using tiled processing for large rasters.
 
         Note:
-            We do not play filter to the nodata pixels, which are commonly water bodies or located beyond the national boundary.
+            We do not apply filter to the nodata pixels, which are commonly water bodies or
+            located beyond the national boundary.
 
         Args:
-            NTLPath (str): The file path of the NTL of the country/region.
-            smoothNTLPath (str): The file path of the smoothed NTL of the country/region.
-            radius (int) : Radius of the Gaussian kernel.
-            sigma (float) : Standard deviation for the Gaussian kernel.
+            NTLPath (str): The file path of the NTL raster.
+            smoothNTLPath (str): The file path of the smoothed NTL raster.
+            radius (int): Radius of the Gaussian kernel.
+            sigma (float): Standard deviation for the Gaussian kernel.
+            tile_size (int): Size of each processing tile (default 4096).
 
         Returns:
-            None: Save the smoothed NTl as a shapefile.
+            None: Save the smoothed NTL as a GeoTIFF.
         """
+        import rasterio
+        from rasterio.windows import Window
 
-        input_ds = gdal.Open(NTLPath)
-        if input_ds is None:
-            raise RuntimeError("Cannot open the raster!")
+        # Padding size: the kernel extends radius*sigma pixels in each direction
+        pad = int(np.ceil(radius * sigma)) + 1
 
-        band = input_ds.GetRasterBand(1)
-        nodata = band.GetNoDataValue()
-        raster_array = band.ReadAsArray().astype(np.float64)
+        with rasterio.open(NTLPath) as src:
+            meta = src.meta.copy()
+            meta.update(dtype='float32', driver='GTiff')
+            nodata = src.nodata
+            height, width = src.height, src.width
 
-        mask = (raster_array == nodata)
-        smoothed_array = gaussian_filter(raster_array, sigma, radius=radius)
-        smoothed_array[mask] = nodata  # Re-apply the no-data mask to the smoothed array.
+            with rasterio.open(smoothNTLPath, 'w', **meta) as dst:
+                for row_off in tqdm(range(0, height, tile_size), desc="Gaussian smoothing"):
+                    for col_off in range(0, width, tile_size):
+                        # Determine the padded read window (clamped to raster bounds)
+                        read_row = max(row_off - pad, 0)
+                        read_col = max(col_off - pad, 0)
+                        read_h = min(row_off + tile_size + pad, height) - read_row
+                        read_w = min(col_off + tile_size + pad, width) - read_col
+                        read_window = Window(read_col, read_row, read_w, read_h)
 
-        # Create output raster.
-        driver = gdal.GetDriverByName('GTiff')
-        output_ds = driver.Create(smoothNTLPath, input_ds.RasterXSize, input_ds.RasterYSize, 1,
-                                  gdal.GDT_Float32)
-        output_ds.SetProjection(input_ds.GetProjection())
-        output_ds.SetGeoTransform(input_ds.GetGeoTransform())
-        output_band = output_ds.GetRasterBand(1)
-        output_band.WriteArray(smoothed_array)
-        output_band.SetNoDataValue(nodata)
+                        tile = src.read(1, window=read_window).astype(np.float64)
 
-        # Clean up
-        input_ds = None
-        output_ds = None
+                        # Apply Gaussian filter on the padded tile
+                        nodata_mask = (tile == nodata) if nodata is not None else np.zeros_like(tile, dtype=bool)
+                        smoothed = gaussian_filter(tile, sigma, radius=radius)
+                        smoothed[nodata_mask] = nodata if nodata is not None else 0
+
+                        # Trim padding to extract the core tile
+                        top_pad = row_off - read_row
+                        left_pad = col_off - read_col
+                        core_h = min(tile_size, height - row_off)
+                        core_w = min(tile_size, width - col_off)
+                        core = smoothed[top_pad:top_pad + core_h, left_pad:left_pad + core_w]
+
+                        # Write the core tile
+                        write_window = Window(col_off, row_off, core_w, core_h)
+                        dst.write(core.astype(np.float32), 1, window=write_window)
 
     def GenerateContours(self, smoothNTLPath, contourPath):
         """Generate the contours map of the smoothed NTL.
 
         Args:
-            smoothNTLPath (str): The file path of the smoothed NTL of the country/region.
-            contourPath (str): The file path of the contours of the country/region.
+            smoothNTLPath (str): The file path of the smoothed NTL raster.
+            contourPath (str): The file path of the output contours (.gpkg).
 
         Returns:
-            None: Save the contours to shapefile.
+            None: Save the contours to GeoPackage.
         """
         input_ds = gdal.Open(smoothNTLPath)
         if input_ds is None:
             raise RuntimeError("Cannot open the raster!")
 
-        driver = ogr.GetDriverByName("ESRI Shapefile")
+        driver = ogr.GetDriverByName("GPKG")
         output_ds = driver.CreateDataSource(contourPath)
         srs = ogr.osr.SpatialReference()
         srs.ImportFromEPSG(4326)
-        layer = output_ds.CreateLayer("Contours", srs=srs, geom_type=ogr.wkbLineString)
+        layer = output_ds.CreateLayer("contours", srs=srs, geom_type=ogr.wkbLineString)
         layer.CreateField(ogr.FieldDefn("Value", ogr.OFTReal))
 
         band = input_ds.GetRasterBand(1)
@@ -123,9 +138,9 @@ class ContoursGenerator():
         if contours_filtered.empty:
             empty_gdf = GeoDataFrame(columns=contours.columns, geometry=[], crs=contours.crs)
             empty_gdf.set_geometry('geometry', inplace=True)
-            empty_gdf.to_file(contourPath, driver='ESRI Shapefile')
+            empty_gdf.to_file(contourPath, driver='GPKG', layer='contours', OVERWRITE='YES')
         else:
-            contours_filtered.to_file(contourPath, driver='ESRI Shapefile')
+            contours_filtered.to_file(contourPath, driver='GPKG', layer='contours', OVERWRITE='YES')
 
     def Execute(self, NTLPath, smoothNTLPath, contourPath):
         """

@@ -2,63 +2,53 @@
 
 ## Codes
 
-- Parameters: Constants for convenience.
-    * `consts.py`: Model parameters and predefined terms, etc.
-    * `plot_utils.py`: Customer plot constants and functions.
-
 - Method: Codes to generate the dataset.
     - Centers identification:
-        * `contours_generator.py`: Class to generate the contours maps.
-        * `centers_generator.py`: Class to identify urban centers within urban areas, based on a specified contour parameter value.. 
-        * `centers_identification.py`: Module to generate urban centers for each country/region under different contour paramters.
-    - Majority voting:
-        * `majority_voting.py`: Module to obtain the voted results among different contour paramter values.
+        * `contours_generator.py`: Class to conduct Gaussian smoothing of NTL rasters and generate contour maps.
+        * `centers_generator.py`: Class to identify urban centers within urban areas based on contour topology.
+        * `centers_identification.py`: Module to generate urban centers for global urban areas under different contour area thresholds.
     - Attribute enhancement:
-        * `attribute_enhancement.py`: Module to provide toponyms and functional categories for centers.
-   
-- Graphs: Codes to plot some of the figures in the paper.
-    * `area_vs_center_number.py`: Figure 2b & 2c: *Geographic distribution of global urban centers*.
-    * `spatial_pattern.py`: Figure 3b, 3c, 3d & 3e: *Spatial distribution of centers within the city*. 
-    * `average_distance.py`: Figure 4b: *Population-weighted average distance to the center*.
-    * `population_decay.py`: Figure 5: *Population density decay from urban center to peripheries*.
+        * `attribute_enhancement.py`: Module to assign toponyms (via GeoNames) and functional categories (via Foursquare POI) to centers.
 
-### Instruction 
-For the purpose of replication, users are recommended to flow this workflow: 
-- Run `centers_identification.py` to generate the results under multiple contour parameters.
-- Run `majority_voting.py` to obatin the voted results across different contour paramters.
-- Run `attribute_enhancement.py` to enrich the centers with additional attributes.
+- Graph: Codes to plot the figures in the paper.
+    * `scaling.py`: Figure 2: *Linear scaling relationship between city area and center number*.
+    * `decomposition.py`: Figure 3: *Consistency between center–population and area–population scaling laws*.
+    * `spatial_pattern.py`: Figure 4b, 4c & 4e: *Spatial distribution of centers within the city*.
+    * `average_distance.py`: Figure 5b: *Population-weighted average distance to the center*.
+
+### Instruction
+For the purpose of replication, users are recommended to follow this workflow:
+1. Run `centers_identification.py` to generate center results under multiple contour area thresholds.
+2. Run `attribute_enhancement.py` to enrich the centers with toponyms and functional categories.
+3. Run the scripts in `Graph/` to reproduce the figures in the paper.
 
 ## Dataset
-We provide two types of center: the point location and its contour extent.
+We provide the center point locations and their corresponding contour extents identified under the minimum contour area threshold of 4 km², which is the version used in the main analysis of the paper.
 
-### Point
-The point data is available in two versions, distinguished by whether they have been manually refined.
-   * `centers_raw.csv`: The direct output of the detection algorithm without human intervention.
-   * `centers_refined.csv`: The version after human main center refinement procedure to enhance usability in applied contexts.
+### Centers
+The center data is saved in CSV format (`centers.csv`), with each row representing one center, encoded in UTF-8. 
 
-Both are saved in CSV format, with each row representing one center, encoded in UTF-8. The meanings of the fields are given below.
-- iso: The ISO alpha-3 code of the country that the center belonged to.
-- country_name: The name of the belonged country.
-- cluster_id: The id of the belonged GHSL urban area.
-- is_mc: Whether the center is the main center of the urban area, 0 for false, 1 for true.
-- name: The geoname of the center.
-- category: The functional category of the center.
-- count: The vote count of the center during the majority voting process.
-- is_refined: Whether the center location has been manually refined, 0 for false, 1 for true. Only for `centers_refined.csv`.
+The results of the multimodal large language model (MLLM)-based post-filtering are recorded in the two additional fields (`is_fp` and `fp_type`). The meanings of the fields are given below.
+- cluster_id: The ID of the GHSL urban area the center belongs to.
+- center_id: The unique identifier for the center.
 - latitude: The latitude of the center under the WGS84 coordinate reference system.
 - longitude: The longitude of the center under the WGS84 coordinate reference system.
-  
-### Contour
-The contours corresponding to urban centers are saved in CSV format, with each row representing one contour, encoded in UTF-8. The meanings of the fields are given below.
-- iso: The ISO alpha-3 code of the country that the center belonged to.
-- country_name: The name of the belonged country.
-- parameter: The value of the minimum contour area under which the contour is identified.
+- is_main: Whether the center is the main center of the urban area, 0 for false, 1 for true.
+- name: The toponym of the center, assigned from GeoNames.
+- category: The functional category of the center, classified from Foursquare POI.
+- is_fp: Whether the center is a false positive, 0 for false, 1 for true.
+- fp_type: The type of false positive, if applicable.
+
+### Contours
+The contours corresponding to urban centers are saved in CSV format (`contours.csv`), with each row representing one contour, encoded in UTF-8. The meanings of the fields are given below.
+- cluster_id: The ID of the GHSL urban area.
+- center_id: The ID of the corresponding center.
 - area: The enclosed area of the contour, in the unit of square kilometers.
 - geometry: The geographic shape of the contour under the WGS84 coordinate reference system.
 
-### Citation
+## Citation
 
-- Shuai Pang, Junlong Zhang, Yu Liu, and Lei Dong. Global evidence for a consistent spatial footprint of intra-urban centers. https://arxiv.org/abs/2503.06445
+Shuai Pang, Junlong Zhang, Yu Liu, and Lei Dong. Global evidence for a consistent spatial footprint of intra-urban centers. https://arxiv.org/abs/2503.06445
 
 ## Contact
 
